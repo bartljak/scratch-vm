@@ -118,10 +118,31 @@ class RenderedTarget extends Target {
         this.rotationStyle = RenderedTarget.ROTATION_STYLE_ALL_AROUND;
 
         /**
-         * Current tempo (used by the music extension)
+         * Loudness for sound playback for this target, as a percentage.
+         * @type {number}
+         */
+        this.volume = 100;
+
+        /**
+         * Current tempo (used by the music extension).
+         * This property is global to the project and stored in the stage.
          * @type {number}
          */
         this.tempo = 60;
+
+        /**
+         * The transparency of the video (used by extensions with camera input).
+         * This property is global to the project and stored in the stage.
+         * @type {number}
+         */
+        this.videoTransparency = 50;
+
+        /**
+         * The state of the video input (used by extensions with camera input).
+         * This property is global to the project and stored in the stage.
+         * @type {string}
+         */
+        this.videoState = RenderedTarget.VIDEO_STATE.OFF;
     }
 
     /**
@@ -146,6 +167,13 @@ class RenderedTarget extends Target {
         this.audioPlayer = null;
         if (this.runtime && this.runtime.audioEngine) {
             this.audioPlayer = this.runtime.audioEngine.createPlayer();
+            // If this is a clone, it gets a reference to its parent's activeSoundPlayers object.
+            if (!this.isOriginal) {
+                const parent = this.sprite.clones[0];
+                if (parent && parent.audioPlayer) {
+                    this.audioPlayer.activeSoundPlayers = parent.audioPlayer.activeSoundPlayers;
+                }
+            }
         }
     }
 
@@ -179,6 +207,18 @@ class RenderedTarget extends Target {
      */
     static get ROTATION_STYLE_NONE () {
         return "don't rotate";
+    }
+
+    /**
+     * Available states for video input.
+     * @type {object}
+     */
+    static get VIDEO_STATE () {
+        return {
+            'OFF': 'off',
+            'ON': 'on',
+            'ON-FLIPPED': 'on-flipped'
+        };
     }
 
     /**
@@ -628,6 +668,18 @@ class RenderedTarget extends Target {
     getBounds () {
         if (this.renderer) {
             return this.runtime.renderer.getBounds(this.drawableID);
+        }
+        return null;
+    }
+
+    /**
+     * Return the bounding box around a slice of the top 8px of the rendered target.
+     * Includes top, left, bottom, right attributes in Scratch coordinates.
+     * @return {?object} Tight bounding box, or null.
+     */
+    getBoundsForBubble () {
+        if (this.renderer) {
+            return this.runtime.renderer.getBoundsForBubble(this.drawableID);
         }
         return null;
     }

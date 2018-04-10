@@ -1,22 +1,20 @@
+const Worker = require('tiny-worker');
 const path = require('path');
 const test = require('tap').test;
 const makeTestStorage = require('../fixtures/make-test-storage');
 const readFileToBuffer = require('../fixtures/readProjectFile').readFileToBuffer;
 const VirtualMachine = require('../../src/index');
+const dispatch = require('../../src/dispatch/central-dispatch');
 
-const uri = path.resolve(__dirname, '../fixtures/data.sb2');
+const uri = path.resolve(__dirname, '../fixtures/saythink-and-wait.sb2');
 const project = readFileToBuffer(uri);
 
-test('data', t => {
+// By default Central Dispatch works with the Worker class built into the browser. Tell it to use TinyWorker instead.
+dispatch.workerClass = Worker;
+
+test('say/think and wait', t => {
     const vm = new VirtualMachine();
     vm.attachStorage(makeTestStorage());
-
-    // Evaluate playground data and exit
-    vm.on('playgroundData', () => {
-        // @todo Additional tests
-        t.end();
-        process.nextTick(process.exit);
-    });
 
     // Start VM, load project, and run
     t.doesNotThrow(() => {
@@ -27,10 +25,12 @@ test('data', t => {
         vm.loadProject(project).then(() => {
             vm.greenFlag();
 
-            // After two seconds, get playground data and stop
+            // After two seconds, stop the project.
+            // The test will fail if the project throws.
             setTimeout(() => {
-                vm.getPlaygroundData();
                 vm.stopAll();
+                t.end();
+                process.nextTick(process.exit);
             }, 2000);
         });
     });
